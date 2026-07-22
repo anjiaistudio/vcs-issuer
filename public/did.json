@@ -1,0 +1,22 @@
+{
+  "@context": [
+    "https://www.w3.org/ns/did/v1"
+  ],
+  "id": "did:web:anjiaistudio.github.io:vcs-issuer",
+  "verificationMethod": [
+    {
+      "id": "did:web:anjiaistudio.github.io:vcs-issuer#key-1",
+      "type": "JsonWebKey2020",
+      "controller": "did:web:anjiaistudio.github.io:vcs-issuer",
+      "publicKeyJwk": {
+        "crv": "Ed25519",
+        "x": "pXt0EabLm3oMT23xOC8VMS8kwo7O3mz0e-4rlOW_8tE",
+        "kty": "OKP",
+        "kid": "XgReUqlUwTlVQrgRPcDvgTZCQZdpics7JY7tHva_wa4"
+      }
+    }
+  ],
+  "assertionMethod": [
+    "did:web:anjiaistudio.github.io:vcs-issuer#key-1"
+  ]
+}
