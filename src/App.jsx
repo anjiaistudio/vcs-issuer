@@ -1137,14 +1137,21 @@ export default function App() {
                             {isVerifyingBiometric ? 'Comparing...' : 'Verify Biometric'}
                           </button>
 
-                          {biometricVerifyResult && (
-                            <div style={{
-                              display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', fontWeight: '800',
-                              color: biometricVerifyResult.match ? '#059669' : '#DC2626'
-                            }}>
-                              {biometricVerifyResult.match
-                                ? (<><CheckCircle size={18} /> Biometric Match</>)
-                                : (<><AlertCircle size={18} /> No Match</>)}
+                         {biometricVerifyResult && (
+                            <div
+                              style={{display: 'flex', alignItems: 'center', gap: '6px',fontSize: '13px',fontWeight: '800',
+                                color: biometricVerifyResult.result === 'match' ? '#059669' : '#DC2626',
+                              }}
+                            >
+                              {biometricVerifyResult.result === 'match' ? (
+                                <>
+                                  <CheckCircle size={18} /> Biometric Match
+                                </>
+                              ) : (
+                                <>
+                                  <AlertCircle size={18} /> No Match
+                                </>
+                              )}
                             </div>
                           )}
                         </div>
