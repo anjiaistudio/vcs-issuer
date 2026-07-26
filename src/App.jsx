@@ -46,6 +46,26 @@ const CREDENTIAL_FORM_CONFIG = {
       { name: 'biometric_verified', label: 'Biometric Verified', type: 'checkbox', default: true },
     ],
   },
+  ConsolidatedCredential:{
+    label: 'Consolidated Credential (All-in-One)',
+    fields: [
+      { name: 'first_name', label: 'First Name', type: 'text', default: 'Jane' },
+      { name: 'middle_name', label: 'Middle Name', type: 'text', default: 'Alice' },
+      { name: 'last_name', label: 'Last Name', type: 'text', default: 'Doe' },
+      { name: 'date_of_birth', label: 'Date of Birth', type: 'date', default: '1990-04-12' },
+      { name: 'verification_method', label: 'Verification Method', type: 'text', default: 'digital_id_check' },
+      { name: 'document_type', label: 'Document Type', type: 'text', default: 'drivers_license' },
+      { name: 'license_number', label: 'License Number', type: 'text', default: 'DL1234567' },
+      { name: 'issuing_state', label: 'Issuing State', type: 'text', default: 'NSW' },
+      { name: 'document_expiry_date', label: 'Document Expiry Date', type: 'date', default: '2029-03-01' },
+      { name: 'bsb', label: 'BSB', type: 'text', default: '062-000' },
+      { name: 'account_number', label: 'Account Number', type: 'text', default: '12345678' },
+      { name: 'account_holder_name', label: 'Account Holder Name', type: 'text', default: 'Jane Doe' },
+      { name: 'biometric_reference_id', label: 'Biometric Reference ID', type: 'text', default: 'cust_001' },
+      { name: 'biometric_verified', label: 'Biometric Verified', type: 'checkbox', default: true },
+    ],
+  },
+
 };
 
 const CREDENTIAL_TYPE_LIST = Object.keys(CREDENTIAL_FORM_CONFIG);
@@ -103,6 +123,7 @@ export default function App() {
 
   const [openVcExplain, setOpenVcExplain] = useState(false);
   const [openIssuerExplain, setOpenIssuerExplain] = useState(false);
+  const [credentialMode, setCredentialMode] = useState('separate'); // 'separate' | 'consolidated'
 
   useEffect(() => {
     if ((issueResult || batchOffers) && qrIssueRef.current) {
@@ -153,6 +174,16 @@ export default function App() {
         credential_type: selectedType,
         claims: claimsByType[selectedType],
       });
+      // const response = await axios.post(`${API_BASE_URL}/issue/combined`, {
+      //   subject_did: subjectDid,
+      //   credential_types: ["BiographicCredential", "DocumentCredential", "BankingCredential", "BiometricCredential"],
+      //   claims_by_type: {
+      //     BiographicCredential: claimsByType.BiographicCredential,
+      //     DocumentCredential: claimsByType.DocumentCredential,
+      //     BankingCredential: claimsByType.BankingCredential,
+      //     BiometricCredential: claimsByType.BiometricCredential,
+      //   },
+      // });     
       setIssueResult(response.data);
     } catch (err) {
       console.error(err);
@@ -202,6 +233,7 @@ export default function App() {
     try {
       const response = await axios.post(`${API_BASE_URL}/verify/session`, {
         use_case: selectedUseCase,
+        credential_mode: credentialMode,
       });
       setVpSession(response.data);
     } catch (err) {
@@ -453,6 +485,19 @@ export default function App() {
       {activeTab === 'oid4vp' && (
         <section className="card">
           <h2 className="card-title">OID4VP Presentation Verification</h2>
+
+          <div className="field-group" style={{ marginBottom: '16px', maxWidth: '400px' }}>
+            <label className="label">Credential Architecture</label>
+            <select className="input" value={credentialMode} onChange={(e) => setCredentialMode(e.target.value)}>
+              <option value="separate">Separate Credentials (4 independent VCs)</option>
+              <option value="consolidated">Consolidated Credential (1 grouped VC)</option>
+            </select>
+            <span className="hint">
+              {credentialMode === 'separate'
+                ? 'Each domain issued and revoked independently.'
+                : 'All domains in one credential, single status endpoint.'}
+            </span>
+          </div>
 
           <div className="field-group" style={{ marginBottom: '16px', maxWidth: '400px' }}>
             <label className="label">Use Case</label>
