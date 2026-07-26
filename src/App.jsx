@@ -2,73 +2,138 @@ import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { QRCodeSVG } from 'qrcode.react';
 import {
-  ShieldCheck, Copy, CheckCircle2, AlertCircle, RefreshCw,
-  ChevronDown, ChevronUp, BookOpen, UserCheck, QrCode, Award, Code, ArrowRight
+  ShieldCheck, AlertCircle, RefreshCw, QrCode, Award, Code, ArrowRight,
+  Upload, CheckCircle, Camera, Trash2, FileText, Lock, User, UserCheck,
+  CreditCard, Landmark, Fingerprint, FileBadge
 } from 'lucide-react';
 import './App.css';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
 
-// --- Credential form configuration (mirrors backend CREDENTIAL_TYPES) ---
-const CREDENTIAL_FORM_CONFIG = {
-  BiographicCredential: {
-    label: 'Biographic Credential',
-    fields: [
-      { name: 'first_name', label: 'First Name', type: 'text', default: 'Jane' },
-      { name: 'middle_name', label: 'Middle Name', type: 'text', default: 'Alice' },
-      { name: 'last_name', label: 'Last Name', type: 'text', default: 'Doe' },
-      { name: 'date_of_birth', label: 'Date of Birth', type: 'date', default: '1990-04-12' },
-      { name: 'verification_method', label: 'Verification Method', type: 'text', default: 'digital_id_check' },
-    ],
-  },
-  DocumentCredential: {
-    label: 'Document Credential',
-    fields: [
-      { name: 'document_type', label: 'Document Type', type: 'text', default: 'drivers_license' },
-      { name: 'license_number', label: 'License Number', type: 'text', default: 'DL1234567' },
-      { name: 'issuing_state', label: 'Issuing State', type: 'text', default: 'NSW' },
-      { name: 'document_expiry_date', label: 'Document Expiry Date', type: 'date', default: '2029-03-01' },
-      { name: 'verification_method', label: 'Verification Method', type: 'text', default: 'digital_id_check' },
-    ],
-  },
-  BankingCredential: {
-    label: 'Banking Credential',
-    fields: [
-      { name: 'bsb', label: 'BSB', type: 'text', default: '062-000' },
-      { name: 'account_number', label: 'Account Number', type: 'text', default: '12345678' },
-      { name: 'account_holder_name', label: 'Account Holder Name', type: 'text', default: 'Jane Doe' },
-    ],
-  },
-  BiometricCredential: {
-    label: 'Biometric Credential',
-    fields: [
-      { name: 'biometric_reference_id', label: 'Biometric Reference ID', type: 'text', default: 'cust_001' },
-      { name: 'biometric_verified', label: 'Biometric Verified', type: 'checkbox', default: true },
-    ],
-  },
-  ConsolidatedCredential:{
-    label: 'Consolidated Credential (All-in-One)',
-    fields: [
-      { name: 'first_name', label: 'First Name', type: 'text', default: 'Jane' },
-      { name: 'middle_name', label: 'Middle Name', type: 'text', default: 'Alice' },
-      { name: 'last_name', label: 'Last Name', type: 'text', default: 'Doe' },
-      { name: 'date_of_birth', label: 'Date of Birth', type: 'date', default: '1990-04-12' },
-      { name: 'verification_method', label: 'Verification Method', type: 'text', default: 'digital_id_check' },
-      { name: 'document_type', label: 'Document Type', type: 'text', default: 'drivers_license' },
-      { name: 'license_number', label: 'License Number', type: 'text', default: 'DL1234567' },
-      { name: 'issuing_state', label: 'Issuing State', type: 'text', default: 'NSW' },
-      { name: 'document_expiry_date', label: 'Document Expiry Date', type: 'date', default: '2029-03-01' },
-      { name: 'bsb', label: 'BSB', type: 'text', default: '062-000' },
-      { name: 'account_number', label: 'Account Number', type: 'text', default: '12345678' },
-      { name: 'account_holder_name', label: 'Account Holder Name', type: 'text', default: 'Jane Doe' },
-      { name: 'biometric_reference_id', label: 'Biometric Reference ID', type: 'text', default: 'cust_001' },
-      { name: 'biometric_verified', label: 'Biometric Verified', type: 'checkbox', default: true },
-    ],
-  },
-
+// Grouped field structures for organized visual presentation
+const CREDENTIAL_SECTIONS = {
+  BiographicCredential: [
+    {
+      title: 'Personal Details',
+      icon: User,
+      themeColor: '#4F46E5', // Indigo
+      lightBg: '#EEF2FF',
+      borderColor: '#C7D2FE',
+      fields: [
+        { name: 'first_name', label: 'First Name', type: 'text', default: 'Jane' },
+        { name: 'middle_name', label: 'Middle Name', type: 'text', default: 'Alice' },
+        { name: 'last_name', label: 'Last Name', type: 'text', default: 'Doe' },
+        { name: 'date_of_birth', label: 'Date of Birth', type: 'date', default: '1990-04-12' },
+        { name: 'verification_method', label: 'Verification Method', type: 'text', default: 'digital_id_check' },
+      ],
+    }
+  ],
+  DocumentCredential: [
+    {
+      title: 'Document Details',
+      icon: FileBadge,
+      themeColor: '#D97706', // Amber
+      lightBg: '#FFFBEB',
+      borderColor: '#FDE68A',
+      fields: [
+        { name: 'document_type', label: 'Document Type', type: 'text', default: 'drivers_license' },
+        { name: 'license_number', label: 'License Number', type: 'text', default: 'DL1234567' },
+        { name: 'issuing_state', label: 'Issuing State', type: 'text', default: 'NSW' },
+        { name: 'document_expiry_date', label: 'Document Expiry Date', type: 'date', default: '2029-03-01' },
+        { name: 'verification_method', label: 'Verification Method', type: 'text', default: 'digital_id_check' },
+      ],
+    }
+  ],
+  BankingCredential: [
+    {
+      title: 'Bank Account Details',
+      icon: Landmark,
+      themeColor: '#059669', // Emerald
+      lightBg: '#ECFDF5',
+      borderColor: '#A7F3D0',
+      fields: [
+        { name: 'bsb', label: 'BSB', type: 'text', default: '062-000' },
+        { name: 'account_number', label: 'Account Number', type: 'text', default: '12345678' },
+        { name: 'account_holder_name', label: 'Account Holder Name', type: 'text', default: 'Jane Doe' },
+      ],
+    }
+  ],
+  BiometricCredential: [
+    {
+      title: 'Biometric Details',
+      icon: Fingerprint,
+      themeColor: '#7C3AED', // Violet
+      lightBg: '#F5F3FF',
+      borderColor: '#DDD6FE',
+      fields: [
+        { name: 'biometric_reference_id', label: 'Biometric Reference ID', type: 'text', default: 'cust_001' },
+        { name: 'biometric_verified', label: 'Biometric Verified', type: 'checkbox', default: true },
+      ],
+    }
+  ],
+  ConsolidatedCredential: [
+    {
+      title: 'Personal Details',
+      icon: User,
+      themeColor: '#4F46E5',
+      lightBg: '#EEF2FF',
+      borderColor: '#C7D2FE',
+      fields: [
+        { name: 'first_name', label: 'First Name', type: 'text', default: 'Jane' },
+        { name: 'middle_name', label: 'Middle Name', type: 'text', default: 'Alice' },
+        { name: 'last_name', label: 'Last Name', type: 'text', default: 'Doe' },
+        { name: 'date_of_birth', label: 'Date of Birth', type: 'date', default: '1990-04-12' },
+        { name: 'verification_method', label: 'Verification Method', type: 'text', default: 'digital_id_check' },
+      ],
+    },
+    {
+      title: 'Document Details',
+      icon: FileBadge,
+      themeColor: '#D97706',
+      lightBg: '#FFFBEB',
+      borderColor: '#FDE68A',
+      fields: [
+        { name: 'document_type', label: 'Document Type', type: 'text', default: 'drivers_license' },
+        { name: 'license_number', label: 'License Number', type: 'text', default: 'DL1234567' },
+        { name: 'issuing_state', label: 'Issuing State', type: 'text', default: 'NSW' },
+        { name: 'document_expiry_date', label: 'Document Expiry Date', type: 'date', default: '2029-03-01' },
+      ],
+    },
+    {
+      title: 'Bank Account Details',
+      icon: Landmark,
+      themeColor: '#059669',
+      lightBg: '#ECFDF5',
+      borderColor: '#A7F3D0',
+      fields: [
+        { name: 'bsb', label: 'BSB', type: 'text', default: '062-000' },
+        { name: 'account_number', label: 'Account Number', type: 'text', default: '12345678' },
+        { name: 'account_holder_name', label: 'Account Holder Name', type: 'text', default: 'Jane Doe' },
+      ],
+    },
+    {
+      title: 'Biometric Details',
+      icon: Fingerprint,
+      themeColor: '#7C3AED',
+      lightBg: '#F5F3FF',
+      borderColor: '#DDD6FE',
+      fields: [
+        { name: 'biometric_reference_id', label: 'Biometric Reference ID', type: 'text', default: 'cust_001' },
+        { name: 'biometric_verified', label: 'Biometric Verified', type: 'checkbox', default: true },
+      ],
+    }
+  ],
 };
 
-const CREDENTIAL_TYPE_LIST = Object.keys(CREDENTIAL_FORM_CONFIG);
+const CREDENTIAL_TYPE_LABELS = {
+  BiographicCredential: 'Biographic Credential',
+  DocumentCredential: 'Document Credential',
+  BankingCredential: 'Banking Credential',
+  BiometricCredential: 'Biometric Credential',
+  ConsolidatedCredential: 'Consolidated Credential (All-in-One)',
+};
+
+const CREDENTIAL_TYPE_LIST = Object.keys(CREDENTIAL_SECTIONS);
 
 const USE_CASES = [
   { id: 'account_opening', label: 'Account Opening', description: 'Requests name, DOB, and biometric verification status.' },
@@ -77,9 +142,11 @@ const USE_CASES = [
 ];
 
 function defaultClaimsForType(credentialType) {
-  const config = CREDENTIAL_FORM_CONFIG[credentialType];
+  const sections = CREDENTIAL_SECTIONS[credentialType];
   const claims = {};
-  config.fields.forEach((f) => { claims[f.name] = f.default; });
+  sections.forEach((sec) => {
+    sec.fields.forEach((f) => { claims[f.name] = f.default; });
+  });
   if (credentialType === 'BiometricCredential') {
     claims.enrolled_at = new Date().toISOString();
     claims.biometric_verification_endpoint = `${API_BASE_URL}/biometric/verify`;
@@ -93,11 +160,12 @@ export default function App() {
   const qrIssueRef = useRef(null);
   const qrVpRef = useRef(null);
   const vpClaimsRef = useRef(null);
+  const fileInputRef = useRef(null);
 
   // --- Issuance State ---
   const [subjectDid, setSubjectDid] = useState('did:key:z6MkpTHR8VNsBxYAAWHut2Geadd9jSwuBV8xRoAnwW36xyM');
-  const [issueMode, setIssueMode] = useState('single'); // 'single' | 'batch'
-  const [selectedType, setSelectedType] = useState('BiographicCredential');
+  const [issueMode, setIssueMode] = useState('single');
+  const [selectedType, setSelectedType] = useState('ConsolidatedCredential');
   const [claimsByType, setClaimsByType] = useState(() => {
     const initial = {};
     CREDENTIAL_TYPE_LIST.forEach((t) => { initial[t] = defaultClaimsForType(t); });
@@ -106,12 +174,28 @@ export default function App() {
   const [selectedBatchTypes, setSelectedBatchTypes] = useState([...CREDENTIAL_TYPE_LIST]);
 
   const [isIssuing, setIsIssuing] = useState(false);
-  const [issueResult, setIssueResult] = useState(null); // single-mode: { oid4vci_uri, ... }
+  const [issueResult, setIssueResult] = useState(null);
   const [issueError, setIssueError] = useState('');
 
   // --- Batch wizard state ---
-  const [batchOffers, setBatchOffers] = useState(null); // [{ credential_type, oid4vci_uri }, ...]
+  const [batchOffers, setBatchOffers] = useState(null);
   const [batchStepIndex, setBatchStepIndex] = useState(0);
+
+  // --- Biometric state ---
+  const [biometricEnabled, setBiometricEnabled] = useState(true);
+  const [selfieFile, setSelfieFile] = useState(null);
+  const [previewUrl, setPreviewUrl] = useState(null);
+  const [isEnrolling, setIsEnrolling] = useState(false);
+  const [enrollResult, setEnrollResult] = useState(null);
+  const [enrollError, setEnrollError] = useState('');
+
+  // --- Biometric verification (post-DCQL) state ---
+  const [verifySelfieFile, setVerifySelfieFile] = useState(null);
+  const [verifyPreviewUrl, setVerifyPreviewUrl] = useState(null);
+  const [isVerifyingBiometric, setIsVerifyingBiometric] = useState(false);
+  const [biometricVerifyResult, setBiometricVerifyResult] = useState(null); // { match: boolean, distance, ... }
+  const [biometricVerifyError, setBiometricVerifyError] = useState('');
+  const verifyFileInputRef = useRef(null);
 
   // --- OID4VP Session State ---
   const [selectedUseCase, setSelectedUseCase] = useState('account_opening');
@@ -120,10 +204,7 @@ export default function App() {
   const [vpStatus, setVpStatus] = useState(null);
   const [vpError, setVpError] = useState('');
   const [showRawJson, setShowRawJson] = useState(false);
-
-  const [openVcExplain, setOpenVcExplain] = useState(false);
-  const [openIssuerExplain, setOpenIssuerExplain] = useState(false);
-  const [credentialMode, setCredentialMode] = useState('separate'); // 'separate' | 'consolidated'
+  const [credentialMode, setCredentialMode] = useState('consolidated');
 
   useEffect(() => {
     if ((issueResult || batchOffers) && qrIssueRef.current) {
@@ -143,6 +224,22 @@ export default function App() {
     }
   }, [vpStatus]);
 
+  const handleFileSelect = (file) => {
+    if (!file) return;
+    setSelfieFile(file);
+    setPreviewUrl(URL.createObjectURL(file));
+    setEnrollResult(null);
+    setEnrollError('');
+  };
+
+  const clearFile = () => {
+    setSelfieFile(null);
+    setPreviewUrl(null);
+    setEnrollResult(null);
+    setEnrollError('');
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
   const handleClaimChange = (credentialType, fieldName, value) => {
     setClaimsByType((prev) => ({
       ...prev,
@@ -158,9 +255,51 @@ export default function App() {
     );
   };
 
-  // ---------------------------------------------------------------------------
-  // 1a. SINGLE CREDENTIAL ISSUANCE
-  // ---------------------------------------------------------------------------
+  const fileToBase64 = (file) => new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result.split(',')[1]);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+
+  const handleEnrollBiometric = async () => {
+    if (!selfieFile) return;
+    setIsEnrolling(true);
+    setEnrollError('');
+    setEnrollResult(null);
+
+    try {
+      const selfie_image_b64 = await fileToBase64(selfieFile);
+      const referenceId =
+        claimsByType[selectedType]?.biometric_reference_id ||
+        claimsByType.BiometricCredential?.biometric_reference_id ||
+        'cust_001';
+
+      const response = await axios.post(`${API_BASE_URL}/biometric/enroll`, {
+        biometric_reference_id: referenceId,
+        selfie_image_b64,
+      });
+      setEnrollResult(response.data);
+    } catch (err) {
+      setEnrollError(err.response?.data?.detail || 'Biometric enrollment failed.');
+    } finally {
+      setIsEnrolling(false);
+    }
+  };
+
+  // Works whether claims came back as { biometric: {...} } (separate mode)
+// or { consolidated: {...} } (consolidated mode) — just scans all
+// disclosed credential groups for the field.
+  const extractBiometricReferenceId = (credentialsById) => {
+    if (!credentialsById) return null;
+    for (const claims of Object.values(credentialsById)) {
+      if (claims && claims.biometric_reference_id) {
+        return claims.biometric_reference_id;
+      }
+    }
+    return null;
+  };
+
   const handleIssueSingle = async (e) => {
     e.preventDefault();
     setIsIssuing(true);
@@ -174,16 +313,6 @@ export default function App() {
         credential_type: selectedType,
         claims: claimsByType[selectedType],
       });
-      // const response = await axios.post(`${API_BASE_URL}/issue/combined`, {
-      //   subject_did: subjectDid,
-      //   credential_types: ["BiographicCredential", "DocumentCredential", "BankingCredential", "BiometricCredential"],
-      //   claims_by_type: {
-      //     BiographicCredential: claimsByType.BiographicCredential,
-      //     DocumentCredential: claimsByType.DocumentCredential,
-      //     BankingCredential: claimsByType.BankingCredential,
-      //     BiometricCredential: claimsByType.BiometricCredential,
-      //   },
-      // });     
       setIssueResult(response.data);
     } catch (err) {
       console.error(err);
@@ -192,10 +321,43 @@ export default function App() {
       setIsIssuing(false);
     }
   };
+  const handleVerifySelfieSelect = (file) => {
+    if (!file) return;
+    setVerifySelfieFile(file);
+    setVerifyPreviewUrl(URL.createObjectURL(file));
+    setBiometricVerifyResult(null);
+    setBiometricVerifyError('');
+  };
 
-  // ---------------------------------------------------------------------------
-  // 1b. BATCH ISSUANCE (WIZARD)
-  // ---------------------------------------------------------------------------
+  const clearVerifySelfie = () => {
+    setVerifySelfieFile(null);
+    setVerifyPreviewUrl(null);
+    setBiometricVerifyResult(null);
+    setBiometricVerifyError('');
+    if (verifyFileInputRef.current) verifyFileInputRef.current.value = '';
+  };
+
+  const handleVerifyBiometric = async () => {
+    const referenceId = extractBiometricReferenceId(vpStatus?.credentials);
+    if (!verifySelfieFile || !referenceId) return;
+
+    setIsVerifyingBiometric(true);
+    setBiometricVerifyError('');
+    setBiometricVerifyResult(null);
+
+    try {
+      const selfie_image_b64 = await fileToBase64(verifySelfieFile);
+      const response = await axios.post(`${API_BASE_URL}/biometric/verify`, {
+        biometric_reference_id: referenceId,
+        selfie_image_b64,
+      });
+      setBiometricVerifyResult(response.data);
+    } catch (err) {
+      setBiometricVerifyError(err.response?.data?.detail || 'Biometric verification failed.');
+    } finally {
+      setIsVerifyingBiometric(false);
+    }
+  };
   const handleIssueBatch = async (e) => {
     e.preventDefault();
     setIsIssuing(true);
@@ -221,14 +383,15 @@ export default function App() {
     }
   };
 
-  // ---------------------------------------------------------------------------
-  // 2. OID4VP VERIFICATION SESSION & POLLING
-  // ---------------------------------------------------------------------------
   const startVerificationSession = async () => {
     setIsCreatingVp(true);
     setVpError('');
     setVpSession(null);
     setVpStatus(null);
+    setVerifySelfieFile(null);
+    setVerifyPreviewUrl(null);
+    setBiometricVerifyResult(null);
+    setBiometricVerifyError('');
 
     try {
       const response = await axios.post(`${API_BASE_URL}/verify/session`, {
@@ -264,23 +427,22 @@ export default function App() {
     return () => clearInterval(intervalId);
   }, [vpSession, vpStatus]);
 
-  // Renders claims grouped by DCQL credential id (e.g. "biographic", "biometric")
   const renderGroupedClaims = (credentialsById) => {
     if (!credentialsById) return null;
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginTop: '12px' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginTop: '14px' }}>
         {Object.entries(credentialsById).map(([queryId, claims]) => (
-          <div key={queryId}>
-            <p style={{ fontSize: '12px', fontWeight: 'bold', color: '#059669', textTransform: 'uppercase', marginBottom: '6px' }}>
+          <div key={queryId} style={{ backgroundColor: '#FFFFFF', borderRadius: '12px', padding: '16px', border: '1px solid #E2E8F0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+            <p style={{ fontSize: '12px', fontWeight: '800', color: '#059669', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '12px' }}>
               From: {queryId}
             </p>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px' }}>
               {Object.entries(claims).map(([key, value]) => (
-                <div key={key} style={{ backgroundColor: '#FFFFFF', padding: '12px', borderRadius: '8px', border: '1px solid #D1D5DB' }}>
-                  <span style={{ fontSize: '12px', textTransform: 'uppercase', color: '#6B7280', fontWeight: 'bold' }}>
+                <div key={key} style={{ backgroundColor: '#F8FAFC', padding: '12px', borderRadius: '8px', border: '1px solid #E2E8F0' }}>
+                  <span style={{ fontSize: '11px', textTransform: 'uppercase', color: '#64748B', fontWeight: '700', letterSpacing: '0.025em' }}>
                     {key.replace(/_/g, ' ')}
                   </span>
-                  <div style={{ fontSize: '15px', fontWeight: '600', color: '#111827', marginTop: '4px', wordBreak: 'break-word' }}>
+                  <div style={{ fontSize: '14px', fontWeight: '600', color: '#0F172A', marginTop: '4px', wordBreak: 'break-word' }}>
                     {typeof value === 'object' ? JSON.stringify(value) : String(value)}
                   </div>
                 </div>
@@ -292,188 +454,503 @@ export default function App() {
     );
   };
 
-  const renderClaimFields = (credentialType) => {
-    const config = CREDENTIAL_FORM_CONFIG[credentialType];
+  // Modernized Categorized Claims UI
+  const renderCategorizedClaims = (credentialType) => {
+    const sections = CREDENTIAL_SECTIONS[credentialType];
     return (
-      <div className="form" style={{ marginTop: '12px' }}>
-        {config.fields.map((field) => (
-          <div className="field-group" key={field.name}>
-            <label className="label">{field.label}</label>
-            {field.type === 'checkbox' ? (
-              <input
-                type="checkbox"
-                checked={!!claimsByType[credentialType][field.name]}
-                onChange={(e) => handleClaimChange(credentialType, field.name, e.target.checked)}
-              />
-            ) : (
-              <input
-                type={field.type}
-                className="input"
-                value={claimsByType[credentialType][field.name] || ''}
-                onChange={(e) => handleClaimChange(credentialType, field.name, e.target.value)}
-                required
-              />
-            )}
-          </div>
-        ))}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+        {sections.map((section, idx) => {
+          const SectionIcon = section.icon;
+          return (
+            <div
+              key={idx}
+              style={{
+                backgroundColor: '#FFFFFF',
+                border: `1.5px solid ${section.borderColor}`,
+                borderRadius: '12px',
+                padding: '18px',
+                boxShadow: '0 2px 4px rgba(0,0,0,0.02)'
+              }}
+            >
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px',
+                  marginBottom: '16px',
+                  paddingBottom: '10px',
+                  borderBottom: `1px solid ${section.borderColor}`
+                }}
+              >
+                <div style={{ backgroundColor: section.lightBg, padding: '6px', borderRadius: '8px' }}>
+                  <SectionIcon size={20} color={section.themeColor} />
+                </div>
+                <h4 style={{ margin: 0, fontSize: '15px', fontWeight: '700', color: '#0F172A', letterSpacing: '-0.01em' }}>
+                  {section.title}
+                </h4>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px' }}>
+                {section.fields.map((field) => (
+                  <div key={field.name} style={{ minWidth: 0, gridColumn: field.type === 'checkbox' ? '1 / -1' : 'auto' }}>
+                    <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#334155', marginBottom: '6px' }}>
+                      {field.label}
+                    </label>
+                    {field.type === 'checkbox' ? (
+                      <label style={{ display: 'inline-flex', alignItems: 'center', gap: '10px', cursor: 'pointer', fontSize: '14px', fontWeight: '500', color: '#0F172A', backgroundColor: section.lightBg, padding: '10px 14px', borderRadius: '8px', border: `1px solid ${section.borderColor}` }}>
+                        <input
+                          type="checkbox"
+                          style={{ width: '18px', height: '18px', accentColor: section.themeColor, cursor: 'pointer' }}
+                          checked={!!claimsByType[credentialType][field.name]}
+                          onChange={(e) => handleClaimChange(credentialType, field.name, e.target.checked)}
+                        />
+                        Verified Status Active
+                      </label>
+                    ) : (
+                      <input
+                        type={field.type}
+                        style={{
+                          width: '100%',
+                          boxSizing: 'border-box',
+                          padding: '10px 12px',
+                          borderRadius: '8px',
+                          border: '1px solid #CBD5E1',
+                          backgroundColor: '#FFFFFF',
+                          fontSize: '14px',
+                          fontWeight: '500',
+                          color: '#0F172A',
+                          outline: 'none',
+                          transition: 'border-color 0.15s ease'
+                        }}
+                        value={claimsByType[credentialType][field.name] || ''}
+                        onChange={(e) => handleClaimChange(credentialType, field.name, e.target.value)}
+                        required
+                      />
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        })}
       </div>
     );
   };
 
+  const renderBiometricSection = () => (
+    <div style={{ marginTop: '20px' }}>
+      <div style={{ backgroundColor: '#FFFFFF', border: '1.5px solid #DDD6FE', borderRadius: '12px', padding: '18px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px', borderBottom: '1px solid #DDD6FE', paddingBottom: '10px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div style={{ backgroundColor: '#F5F3FF', padding: '6px', borderRadius: '8px' }}>
+              <Camera size={20} color="#7C3AED" />
+            </div>
+            <h4 style={{ margin: 0, fontSize: '15px', fontWeight: '700', color: '#0F172A' }}>
+              Biometric Enrollment (Selfie Photo)
+            </h4>
+          </div>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '13px', fontWeight: '600', color: '#475569' }}>
+            <input
+              type="checkbox"
+              style={{ width: '16px', height: '16px', accentColor: '#7C3AED' }}
+              checked={biometricEnabled}
+              onChange={(e) => setBiometricEnabled(e.target.checked)}
+            />
+            Enable Enrollment
+          </label>
+        </div>
+
+        {biometricEnabled && (
+          <div>
+            {!previewUrl ? (
+              <div
+                onClick={() => fileInputRef.current?.click()}
+                style={{
+                  border: '2px dashed #A78BFA',
+                  backgroundColor: '#F5F3FF',
+                  borderRadius: '10px',
+                  padding: '24px 16px',
+                  textAlign: 'center',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                }}
+              >
+                <Upload size={32} color="#7C3AED" style={{ marginBottom: '8px' }} />
+                <p style={{ margin: 0, fontSize: '14px', fontWeight: '700', color: '#5B21B6' }}>
+                  Click to upload face selfie
+                </p>
+                <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: '#6B7280' }}>
+                  JPG, PNG, or WEBP formats supported
+                </p>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  style={{ display: 'none' }}
+                  onChange={(e) => handleFileSelect(e.target.files[0])}
+                />
+              </div>
+            ) : (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '14px', backgroundColor: '#F8FAFC', padding: '12px', borderRadius: '10px', border: '1px solid #E2E8F0' }}>
+                <img
+                  src={previewUrl}
+                  alt="Selfie preview"
+                  style={{ width: '64px', height: '64px', objectFit: 'cover', borderRadius: '8px', border: '1px solid #CBD5E1' }}
+                />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p style={{ margin: 0, fontSize: '14px', fontWeight: '700', color: '#0F172A' }}>
+                    {selfieFile?.name}
+                  </p>
+                  <p style={{ margin: '2px 0 0 0', fontSize: '12px', color: '#64748B' }}>
+                    {(selfieFile?.size / 1024).toFixed(1)} KB
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={clearFile}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '8px', color: '#EF4444' }}
+                  title="Remove image"
+                >
+                  <Trash2 size={18} />
+                </button>
+              </div>
+            )}
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '14px' }}>
+              <button
+                type="button"
+                onClick={handleEnrollBiometric}
+                disabled={!selfieFile || isEnrolling}
+                style={{
+                  padding: '10px 16px',
+                  fontSize: '13px',
+                  fontWeight: '700',
+                  backgroundColor: !selfieFile || isEnrolling ? '#94A3B8' : '#7C3AED',
+                  color: '#FFFFFF',
+                  borderRadius: '8px',
+                  border: 'none',
+                  cursor: !selfieFile || isEnrolling ? 'not-allowed' : 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
+                }}
+              >
+                {isEnrolling ? <RefreshCw className="spinner" size={16} /> : <UserCheck size={16} />}
+                {isEnrolling ? 'Enrolling...' : 'Enroll Face Profile'}
+              </button>
+
+              {enrollResult && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#059669', fontSize: '13px', fontWeight: '700' }}>
+                  <CheckCircle size={18} /> Biometrics Registered Successfully
+                </div>
+              )}
+            </div>
+
+            {enrollError && (
+              <div style={{ marginTop: '10px', padding: '10px', fontSize: '13px', backgroundColor: '#FEF2F2', border: '1px solid #FCA5A5', color: '#B91C1C', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <AlertCircle size={16} />
+                <span>{enrollError}</span>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
   return (
-    <div className="container">
-      <header className="header">
-        <ShieldCheck size={36} color="#4F46E5" />
-        <h1 className="title">VCS Issuer & Verifier Studio</h1>
-        <p className="subtitle">
-          Issue & Verify SD-JWT Credentials using <code>OID4VCI</code> & <code>OID4VP</code>
+    <div className="container" style={{ maxWidth: '1320px', margin: '0 auto', padding: '28px 24px', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
+      {/* Header */}
+      <header style={{ textAlign: 'center', marginBottom: '28px' }}>
+        <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '56px', height: '56px', backgroundColor: '#EEF2FF', borderRadius: '16px', color: '#4F46E5', marginBottom: '12px', boxShadow: '0 2px 6px rgba(79, 70, 229, 0.15)' }}>
+          <ShieldCheck size={32} />
+        </div>
+        <h1 style={{ fontSize: '30px', fontWeight: '800', color: '#0F172A', margin: 0, letterSpacing: '-0.02em' }}>VCS Issuer & Verifier Studio</h1>
+        <p style={{ fontSize: '15px', color: '#475569', marginTop: '6px' }}>
+          Standards-compliant SD-JWT credentials with <code>OID4VCI</code> & <code>OID4VP</code>
         </p>
       </header>
 
-      <nav className="tab-navigation" style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
+      {/* Main Navigation Tabs */}
+       <nav className="tab-navigation" style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
+              <button
+                className={`button ${activeTab === 'issue' ? '' : 'button-secondary'}`}
+                onClick={() => setActiveTab('issue')}
+                style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+              >
+                <Award size={18} /> 1. Issue Credential (OID4VCI)
+              </button>
+              <button
+                className={`button ${activeTab === 'oid4vp' ? '' : 'button-secondary'}`}
+                onClick={() => setActiveTab('oid4vp')}
+                style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+              >
+                <QrCode size={18} /> 2. OID4VP Presentation
+              </button>
+            </nav>
+      {/* <nav style={{ display: 'flex', gap: '10px', marginBottom: '24px', backgroundColor: '#4F46E5', padding: '6px', borderRadius: '12px' }}>
         <button
-          className={`button ${activeTab === 'issue' ? '' : 'button-secondary'}`}
           onClick={() => setActiveTab('issue')}
-          style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+          style={{
+            flex: 1,
+            padding: '12px',
+            borderRadius: '8px',
+            border: 'none',
+            fontWeight: '700',
+            fontSize: '15px',
+            cursor: 'pointer',
+            backgroundColor: activeTab === 'issue' ? '#FFFFFF' : 'transparent',
+            color: activeTab === 'issue' ? '#4F46E5' : '#64748B',
+            boxShadow: activeTab === 'issue' ? '0 2px 4px rgba(0,0,0,0.06)' : 'none',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '8px',
+            transition: 'all 0.15s ease'
+          }}
         >
-          <Award size={18} /> 1. Issue Credential (OID4VCI)
+          <Award size={20} /> 1. Issue Credential (OID4VCI)
         </button>
         <button
-          className={`button ${activeTab === 'oid4vp' ? '' : 'button-secondary'}`}
           onClick={() => setActiveTab('oid4vp')}
-          style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+          style={{
+            flex: 1,
+            padding: '12px',
+            borderRadius: '8px',
+            border: 'none',
+            fontWeight: '700',
+            fontSize: '15px',
+            cursor: 'pointer',
+            backgroundColor: activeTab === 'oid4vp' ? '#FFFFFF' : 'transparent',
+            color: activeTab === 'oid4vp' ? '#4F46E5' : '#64748B',
+            boxShadow: activeTab === 'oid4vp' ? '0 2px 4px rgba(0,0,0,0.06)' : 'none',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '8px',
+            transition: 'all 0.15s ease'
+          }}
         >
-          <QrCode size={18} /> 2. OID4VP Presentation
+          <QrCode size={20} /> 2. OID4VP Presentation
         </button>
-      </nav>
+      </nav> */}
 
       {/* TAB 1: ISSUANCE */}
       {activeTab === 'issue' && (
-        <main className="grid">
-          <section className="card">
-            <h2 className="card-title">1. Credential Details</h2>
+        <main style={{ display: 'grid', gridTemplateColumns: '1.25fr 0.75fr', gap: '24px', alignItems: 'start' }}>
+          {/* Column 1: Config Form */}
+          <section style={{ backgroundColor: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: '16px', padding: '24px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.03)' }}>
+            <h2 style={{ fontSize: '18px', fontWeight: '800', color: '#0F172A', marginTop: 0, marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <FileText size={22} color="#4F46E5" /> 1. Credential Configuration
+            </h2>
 
-            <div className="field-group" style={{ marginBottom: '16px' }}>
-              <label className="label">Holder (Recipient) DID</label>
-              <input
-                type="text"
-                className="input"
-                value={subjectDid}
-                onChange={(e) => setSubjectDid(e.target.value)}
-                required
-              />
-              <span className="hint">Placeholder only — real holder key is bound via wallet proof at import time.</span>
+            <div style={{ marginBottom: '18px' }}>
+              <label style={{ fontSize: '13px', fontWeight: '700', color: '#334155', display: 'block', marginBottom: '6px' }}>
+                Holder (Recipient) DID
+              </label>
+              <div style={{ position: 'relative' }}>
+                <input
+                  type="text"
+                  style={{ width: '100%', boxSizing: 'border-box', padding: '10px 12px', paddingLeft: '36px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '13px', fontFamily: 'monospace', color: '#0F172A', fontWeight: '500' }}
+                  value={subjectDid}
+                  onChange={(e) => setSubjectDid(e.target.value)}
+                  required
+                />
+                <Lock size={16} color="#94A3B8" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
+              </div>
             </div>
 
-            <div className="field-group" style={{ marginBottom: '16px' }}>
-              <label className="label">Issuance Mode</label>
+            <div style={{ marginBottom: '18px' }}>
+              <label style={{ fontSize: '13px', fontWeight: '700', color: '#334155', display: 'block', marginBottom: '6px' }}>
+                Issuance Mode
+              </label>
               <select
-                className="input"
+                style={{ width: '100%', boxSizing: 'border-box', padding: '10px 12px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '14px', fontWeight: '600', backgroundColor: '#FFFFFF', color: '#0F172A' }}
                 value={issueMode}
                 onChange={(e) => setIssueMode(e.target.value)}
               >
-                <option value="single">Single Credential</option>
-                <option value="batch">All Credentials (Batch Wizard)</option>
+                <option value="single">Single Credential Issuance</option>
+                <option value="batch">All Credentials (Batch Issuance Wizard)</option>
               </select>
             </div>
 
+            {/* SINGLE MODE */}
             {issueMode === 'single' ? (
-              <form onSubmit={handleIssueSingle} className="form">
-                <div className="field-group">
-                  <label className="label">Credential Type</label>
+              <form onSubmit={handleIssueSingle}>
+                <div style={{ marginBottom: '18px' }}>
+                  <label style={{ fontSize: '13px', fontWeight: '700', color: '#334155', display: 'block', marginBottom: '6px' }}>
+                    Select Credential Type
+                  </label>
                   <select
-                    className="input"
+                    style={{ width: '100%', boxSizing: 'border-box', padding: '10px 12px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '14px', fontWeight: '600', backgroundColor: '#FFFFFF', color: '#0F172A' }}
                     value={selectedType}
                     onChange={(e) => setSelectedType(e.target.value)}
                   >
                     {CREDENTIAL_TYPE_LIST.map((t) => (
-                      <option key={t} value={t}>{CREDENTIAL_FORM_CONFIG[t].label}</option>
+                      <option key={t} value={t}>{CREDENTIAL_TYPE_LABELS[t]}</option>
                     ))}
                   </select>
                 </div>
 
-                {renderClaimFields(selectedType)}
+                {renderCategorizedClaims(selectedType)}
 
-                <button type="submit" disabled={isIssuing} className="button">
+                {(selectedType === 'BiometricCredential' || selectedType === 'ConsolidatedCredential') && renderBiometricSection()}
+
+                <button
+                  type="submit"
+                  disabled={isIssuing}
+                  style={{
+                    width: '100%',
+                    marginTop: '20px',
+                    padding: '12px',
+                    borderRadius: '8px',
+                    backgroundColor: '#4F46E5',
+                    color: '#FFFFFF',
+                    border: 'none',
+                    fontWeight: '700',
+                    fontSize: '15px',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px',
+                    boxShadow: '0 2px 4px rgba(79, 70, 229, 0.2)'
+                  }}
+                >
                   {isIssuing ? (<><RefreshCw className="spinner" size={18} /> Signing Credential...</>) : 'Issue Verifiable Credential'}
                 </button>
               </form>
             ) : (
-              <form onSubmit={handleIssueBatch} className="form">
-                <div className="field-group">
-                  <label className="label">Credentials to Include</label>
-                  {CREDENTIAL_TYPE_LIST.map((t) => (
-                    <label key={t} style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                      <input
-                        type="checkbox"
-                        checked={selectedBatchTypes.includes(t)}
-                        onChange={() => toggleBatchType(t)}
-                      />
-                      {CREDENTIAL_FORM_CONFIG[t].label}
-                    </label>
-                  ))}
+              /* BATCH MODE */
+              <form onSubmit={handleIssueBatch}>
+                <div style={{ marginBottom: '18px' }}>
+                  <label style={{ fontSize: '13px', fontWeight: '700', color: '#334155', display: 'block', marginBottom: '8px' }}>
+                    Credentials Included in Batch
+                  </label>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '8px' }}>
+                    {CREDENTIAL_TYPE_LIST.map((t) => (
+                      <label key={t} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 10px', backgroundColor: '#F8FAFC', borderRadius: '8px', border: '1px solid #E2E8F0', cursor: 'pointer', fontSize: '13px', fontWeight: '600', color: '#334155' }}>
+                        <input
+                          type="checkbox"
+                          style={{ accentColor: '#4F46E5', width: '16px', height: '16px' }}
+                          checked={selectedBatchTypes.includes(t)}
+                          onChange={() => toggleBatchType(t)}
+                        />
+                        {CREDENTIAL_TYPE_LABELS[t]}
+                      </label>
+                    ))}
+                  </div>
                 </div>
 
                 {selectedBatchTypes.map((t) => (
-                  <div key={t} style={{ borderTop: '1px solid #f3f4f6', paddingTop: '12px' }}>
-                    <p className="label">{CREDENTIAL_FORM_CONFIG[t].label}</p>
-                    {renderClaimFields(t)}
+                  <div key={t} style={{ marginBottom: '16px' }}>
+                    <p style={{ margin: '0 0 8px 0', fontSize: '14px', fontWeight: '800', color: '#0F172A' }}>{CREDENTIAL_TYPE_LABELS[t]}</p>
+                    {renderCategorizedClaims(t)}
                   </div>
                 ))}
 
-                <button type="submit" disabled={isIssuing || selectedBatchTypes.length === 0} className="button">
+                {(selectedBatchTypes.includes('BiometricCredential') || selectedBatchTypes.includes('ConsolidatedCredential')) && renderBiometricSection()}
+
+                <button
+                  type="submit"
+                  disabled={isIssuing || selectedBatchTypes.length === 0}
+                  style={{
+                    width: '100%',
+                    marginTop: '20px',
+                    padding: '12px',
+                    borderRadius: '8px',
+                    backgroundColor: '#4F46E5',
+                    color: '#FFFFFF',
+                    border: 'none',
+                    fontWeight: '700',
+                    fontSize: '15px',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px',
+                    boxShadow: '0 2px 4px rgba(79, 70, 229, 0.2)'
+                  }}
+                >
                   {isIssuing ? (<><RefreshCw className="spinner" size={18} /> Preparing Offers...</>) : 'Issue All Selected Credentials'}
                 </button>
               </form>
             )}
 
             {issueError && (
-              <div className="error-box">
-                <AlertCircle size={20} color="#DC2626" />
+              <div style={{ marginTop: '16px', padding: '12px', backgroundColor: '#FEF2F2', border: '1px solid #FCA5A5', borderRadius: '8px', color: '#991B1B', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', fontWeight: '500' }}>
+                <AlertCircle size={18} color="#DC2626" />
                 <span>{issueError}</span>
               </div>
             )}
           </section>
 
-          <section className="card" ref={qrIssueRef}>
-            <h2 className="card-title">2. Scan with Mobile Wallet</h2>
+          {/* Column 2: Mobile Wallet Scanner (Adjacent to Form) */}
+          <section ref={qrIssueRef} style={{ backgroundColor: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: '16px', padding: '24px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.03)', position: 'sticky', top: '24px' }}>
+            <h2 style={{ fontSize: '18px', fontWeight: '800', color: '#0F172A', marginTop: 0, marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <QrCode size={22} color="#4F46E5" /> 2. Mobile Wallet Scanner
+            </h2>
 
             {!issueResult && !batchOffers && (
-              <div className="empty-state">
-                <ShieldCheck size={48} color="#D1D5DB" />
-                <p>Fill out claim details and issue a credential to generate the OID4VCI QR offer.</p>
+              <div style={{ padding: '48px 20px', textAlign: 'center', backgroundColor: '#F8FAFC', borderRadius: '12px', border: '2px dashed #CBD5E1' }}>
+                <ShieldCheck size={48} color="#94A3B8" style={{ marginBottom: '12px' }} />
+                <p style={{ margin: 0, fontSize: '14px', color: '#64748B', fontWeight: '600' }}>
+                  Complete field configuration and click issue to render the wallet QR offer.
+                </p>
               </div>
             )}
 
             {issueResult && (
-              <div className="output-container">
-                <div className="qr-box" style={{ textAlign: 'center' }}>
-                  <QRCodeSVG value={issueResult.oid4vci_uri} size={200} includeMargin={true} />
-                  <p className="qr-hint" style={{ marginTop: '10px' }}>Scan with your wallet's built-in QR scanner</p>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                <div style={{ padding: '20px', backgroundColor: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: '16px', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.05)', textAlign: 'center' }}>
+                  <QRCodeSVG value={issueResult.oid4vci_uri} size={210} includeMargin={true} />
+                  <p style={{ marginTop: '12px', marginBottom: 0, fontSize: '13px', fontWeight: '700', color: '#334155' }}>
+                    Scan with your mobile wallet app
+                  </p>
                 </div>
               </div>
             )}
 
             {batchOffers && (
-              <div className="output-container">
-                <p className="hint">Step {batchStepIndex + 1} of {batchOffers.length}</p>
-                <div className="qr-box" style={{ textAlign: 'center' }}>
-                  <p style={{ fontWeight: 600, marginBottom: '10px' }}>
-                    {CREDENTIAL_FORM_CONFIG[batchOffers[batchStepIndex].credential_type]?.label || batchOffers[batchStepIndex].credential_type}
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                <div style={{ backgroundColor: '#EEF2FF', padding: '6px 14px', borderRadius: '20px', fontSize: '12px', fontWeight: '800', color: '#4F46E5', marginBottom: '14px' }}>
+                  Step {batchStepIndex + 1} of {batchOffers.length}
+                </div>
+
+                <div style={{ padding: '20px', backgroundColor: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: '16px', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.05)', textAlign: 'center', width: '100%', boxSizing: 'border-box' }}>
+                  <p style={{ fontWeight: '800', fontSize: '15px', color: '#0F172A', marginBottom: '12px' }}>
+                    {CREDENTIAL_TYPE_LABELS[batchOffers[batchStepIndex].credential_type] || batchOffers[batchStepIndex].credential_type}
                   </p>
                   <QRCodeSVG value={batchOffers[batchStepIndex].oid4vci_uri} size={200} includeMargin={true} />
-                  <p className="qr-hint" style={{ marginTop: '10px' }}>Scan this credential, then confirm import in your wallet</p>
+                  <p style={{ marginTop: '12px', marginBottom: 0, fontSize: '12px', color: '#64748B', fontWeight: '500' }}>
+                    Scan this QR code, then accept offer in wallet
+                  </p>
                 </div>
 
                 <button
-                  className="button"
                   disabled={batchStepIndex >= batchOffers.length - 1}
                   onClick={() => setBatchStepIndex((i) => Math.min(i + 1, batchOffers.length - 1))}
-                  style={{ maxWidth: '260px', display: 'flex', alignItems: 'center', gap: '8px' }}
+                  style={{
+                    marginTop: '20px',
+                    width: '100%',
+                    padding: '12px',
+                    borderRadius: '8px',
+                    backgroundColor: batchStepIndex >= batchOffers.length - 1 ? '#94A3B8' : '#10B981',
+                    color: '#FFFFFF',
+                    border: 'none',
+                    fontWeight: '700',
+                    fontSize: '14px',
+                    cursor: batchStepIndex >= batchOffers.length - 1 ? 'not-allowed' : 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px'
+                  }}
                 >
                   {batchStepIndex >= batchOffers.length - 1
                     ? 'All Credentials Issued'
-                    : (<>I've added this credential — Next <ArrowRight size={16} /></>)}
+                    : (<>Next Credential <ArrowRight size={16} /></>)}
                 </button>
               </div>
             )}
@@ -483,95 +960,209 @@ export default function App() {
 
       {/* TAB 2: VERIFICATION */}
       {activeTab === 'oid4vp' && (
-        <section className="card">
-          <h2 className="card-title">OID4VP Presentation Verification</h2>
+        <section style={{ backgroundColor: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: '16px', padding: '24px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.03)' }}>
+          <h2 style={{ fontSize: '20px', fontWeight: '800', color: '#0F172A', marginTop: 0, marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <QrCode size={22} color="#4F46E5" /> OID4VP Presentation Verification
+          </h2>
 
-          <div className="field-group" style={{ marginBottom: '16px', maxWidth: '400px' }}>
-            <label className="label">Credential Architecture</label>
-            <select className="input" value={credentialMode} onChange={(e) => setCredentialMode(e.target.value)}>
-              <option value="separate">Separate Credentials (4 independent VCs)</option>
-              <option value="consolidated">Consolidated Credential (1 grouped VC)</option>
-            </select>
-            <span className="hint">
-              {credentialMode === 'separate'
-                ? 'Each domain issued and revoked independently.'
-                : 'All domains in one credential, single status endpoint.'}
-            </span>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '18px', marginBottom: '20px' }}>
+            <div>
+              <label style={{ fontSize: '13px', fontWeight: '700', color: '#334155', display: 'block', marginBottom: '6px' }}>
+                Credential Architecture
+              </label>
+              <select
+                style={{ width: '100%', boxSizing: 'border-box', padding: '10px 12px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '14px', fontWeight: '600', color: '#0F172A' }}
+                value={credentialMode}
+                onChange={(e) => setCredentialMode(e.target.value)}
+              >
+                <option value="separate">Separate Credentials (4 independent VCs)</option>
+                <option value="consolidated">Consolidated Credential (1 grouped VC)</option>
+              </select>
+            </div>
+
+            <div>
+              <label style={{ fontSize: '13px', fontWeight: '700', color: '#334155', display: 'block', marginBottom: '6px' }}>
+                Verification Use Case
+              </label>
+              <select
+                style={{ width: '100%', boxSizing: 'border-box', padding: '10px 12px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '14px', fontWeight: '600', color: '#0F172A' }}
+                value={selectedUseCase}
+                onChange={(e) => setSelectedUseCase(e.target.value)}
+              >
+                {USE_CASES.map((uc) => (
+                  <option key={uc.id} value={uc.id}>{uc.label}</option>
+                ))}
+              </select>
+            </div>
           </div>
 
-          <div className="field-group" style={{ marginBottom: '16px', maxWidth: '400px' }}>
-            <label className="label">Use Case</label>
-            <select
-              className="input"
-              value={selectedUseCase}
-              onChange={(e) => setSelectedUseCase(e.target.value)}
-            >
-              {USE_CASES.map((uc) => (
-                <option key={uc.id} value={uc.id}>{uc.label}</option>
-              ))}
-            </select>
-            <span className="hint">{USE_CASES.find((uc) => uc.id === selectedUseCase)?.description}</span>
-          </div>
-
-          <button onClick={startVerificationSession} disabled={isCreatingVp} className="button" style={{ maxWidth: '300px' }}>
-            {isCreatingVp ? (<><RefreshCw className="spinner" size={18} /> Initializing Session...</>) : 'Create Verification Session'}
+          <button
+            onClick={startVerificationSession}
+            disabled={isCreatingVp}
+            style={{
+              padding: '12px 20px',
+              borderRadius: '8px',
+              backgroundColor: '#4F46E5',
+              color: '#FFFFFF',
+              border: 'none',
+              fontWeight: '700',
+              fontSize: '15px',
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '8px',
+              boxShadow: '0 2px 4px rgba(79, 70, 229, 0.2)'
+            }}
+          >
+            {isCreatingVp ? (<><RefreshCw className="spinner" size={18} /> Initializing...</>) : 'Create Verification Session'}
           </button>
 
           {vpError && (
-            <div className="error-box" style={{ marginTop: '15px' }}>
-              <AlertCircle size={20} color="#DC2626" />
+            <div style={{ marginTop: '16px', padding: '12px', backgroundColor: '#FEF2F2', border: '1px solid #FCA5A5', borderRadius: '8px', color: '#991B1B', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px' }}>
+              <AlertCircle size={18} color="#DC2626" />
               <span>{vpError}</span>
             </div>
           )}
 
           {vpSession && (
-            <div className="output-container" style={{ marginTop: '25px' }} ref={qrVpRef}>
-              <div className="qr-box" style={{ textAlign: 'center' }}>
-                <QRCodeSVG value={vpSession.oid4vp_uri} size={220} includeMargin={true} />
-                <p className="qr-hint" style={{ marginTop: '10px' }}>Scan with your wallet's built-in QR scanner</p>
+            <div style={{ marginTop: '24px', borderTop: '1px solid #E2E8F0', paddingTop: '24px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '24px' }} ref={qrVpRef}>
+              <div style={{ padding: '20px', backgroundColor: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: '16px', textAlign: 'center', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.03)' }}>
+                <QRCodeSVG value={vpSession.oid4vp_uri} size={210} includeMargin={true} />
+                <p style={{ marginTop: '12px', marginBottom: 0, fontSize: '13px', color: '#64748B', fontWeight: '600' }}>
+                  Scan with your wallet scanner to authorize sharing
+                </p>
               </div>
 
-              <div className="jwt-box" style={{ width: '100%' }}>
-                <p><strong>Session ID:</strong> <code>{vpSession.session_id}</code></p>
-                <p style={{ marginTop: '10px' }}>
-                  <strong>Status: </strong>
-                  <span style={{
-                    fontWeight: 'bold',
-                    color: vpStatus?.status === 'verified' ? '#059669' : vpStatus?.status === 'failed' ? '#DC2626' : '#D97706'
-                  }}>
-                    {vpStatus?.status?.toUpperCase() || 'PENDING (WAITING FOR SCAN)'}
-                  </span>
-                </p>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ backgroundColor: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '10px', padding: '14px', marginBottom: '16px' }}>
+                  <p style={{ margin: 0, fontSize: '13px', color: '#475569' }}>
+                    <strong>Session ID:</strong> <code style={{ backgroundColor: '#E2E8F0', padding: '2px 6px', borderRadius: '4px', fontSize: '12px' }}>{vpSession.session_id}</code>
+                  </p>
+                  <p style={{ marginTop: '8px', marginBottom: 0, fontSize: '14px' }}>
+                    <strong>Verification Status: </strong>
+                    <span style={{
+                      fontWeight: '800',
+                      padding: '3px 8px',
+                      borderRadius: '12px',
+                      fontSize: '12px',
+                      backgroundColor: vpStatus?.status === 'verified' ? '#D1FAE5' : vpStatus?.status === 'failed' ? '#FEE2E2' : '#FEF3C7',
+                      color: vpStatus?.status === 'verified' ? '#065F46' : vpStatus?.status === 'failed' ? '#991B1B' : '#92400E'
+                    }}>
+                      {vpStatus?.status?.toUpperCase() || 'PENDING (WAITING FOR SCAN)'}
+                    </span>
+                  </p>
+                </div>
 
                 {vpStatus?.status === 'verified' && (
-                  <div ref={vpClaimsRef} style={{ marginTop: '20px', backgroundColor: '#ECFDF5', border: '1px solid #A7F3D0', padding: '20px', borderRadius: '8px' }}>
+                  <div ref={vpClaimsRef} style={{ backgroundColor: '#ECFDF5', border: '1px solid #A7F3D0', padding: '18px', borderRadius: '12px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <h3 style={{ color: '#065F46', display: 'flex', alignItems: 'center', gap: '8px', margin: 0, fontSize: '18px' }}>
-                        <CheckCircle2 size={22} color="#059669" /> Verification Successful!
+                      <h3 style={{ color: '#065F46', display: 'flex', alignItems: 'center', gap: '8px', margin: 0, fontSize: '16px', fontWeight: '800' }}>
+                        <CheckCircle size={20} color="#059669" /> Presentation Verified!
                       </h3>
                       <button
                         onClick={() => setShowRawJson(!showRawJson)}
-                        style={{ background: 'none', border: 'none', color: '#047857', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '13px', fontWeight: 'bold' }}
+                        style={{ background: 'none', border: 'none', color: '#047857', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: '800' }}
                       >
                         <Code size={16} /> {showRawJson ? 'Hide Raw JSON' : 'Show Raw JSON'}
                       </button>
                     </div>
 
-                    <p style={{ marginTop: '12px', fontWeight: '600', color: '#064E3B' }}>Verified Claims Received:</p>
                     {renderGroupedClaims(vpStatus.credentials)}
+                    {selectedUseCase === 'account_opening' && extractBiometricReferenceId(vpStatus.credentials) && (
+                      <div style={{ marginTop: '18px', paddingTop: '18px', borderTop: '1px solid #A7F3D0' }}>
+                        <h4 style={{ margin: '0 0 12px 0', fontSize: '14px', fontWeight: '800', color: '#065F46', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <Camera size={18} color="#7C3AED" /> Live Biometric Re-Verification
+                        </h4>
+
+                        {!verifyPreviewUrl ? (
+                          <div
+                            onClick={() => verifyFileInputRef.current?.click()}
+                            style={{
+                              border: '2px dashed #A78BFA',
+                              backgroundColor: '#F5F3FF',
+                              borderRadius: '10px',
+                              padding: '20px 16px',
+                              textAlign: 'center',
+                              cursor: 'pointer',
+                            }}
+                          >
+                            <Upload size={28} color="#7C3AED" style={{ marginBottom: '6px' }} />
+                            <p style={{ margin: 0, fontSize: '13px', fontWeight: '700', color: '#5B21B6' }}>
+                              Click to upload live selfie
+                            </p>
+                            <input
+                              ref={verifyFileInputRef}
+                              type="file"
+                              accept="image/*"
+                              style={{ display: 'none' }}
+                              onChange={(e) => handleVerifySelfieSelect(e.target.files[0])}
+                            />
+                          </div>
+                        ) : (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '14px', backgroundColor: '#FFFFFF', padding: '12px', borderRadius: '10px', border: '1px solid #E2E8F0' }}>
+                            <img
+                              src={verifyPreviewUrl}
+                              alt="Verification selfie preview"
+                              style={{ width: '56px', height: '56px', objectFit: 'cover', borderRadius: '8px', border: '1px solid #CBD5E1' }}
+                            />
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <p style={{ margin: 0, fontSize: '13px', fontWeight: '700', color: '#0F172A' }}>{verifySelfieFile?.name}</p>
+                            </div>
+                            <button type="button" onClick={clearVerifySelfie} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '8px', color: '#EF4444' }}>
+                              <Trash2 size={16} />
+                            </button>
+                          </div>
+                        )}
+
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '12px' }}>
+                          <button
+                            type="button"
+                            onClick={handleVerifyBiometric}
+                            disabled={!verifySelfieFile || isVerifyingBiometric}
+                            style={{
+                              padding: '10px 16px',
+                              fontSize: '13px',
+                              fontWeight: '700',
+                              backgroundColor: !verifySelfieFile || isVerifyingBiometric ? '#94A3B8' : '#7C3AED',
+                              color: '#FFFFFF',
+                              borderRadius: '8px',
+                              border: 'none',
+                              cursor: !verifySelfieFile || isVerifyingBiometric ? 'not-allowed' : 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '8px',
+                            }}
+                          >
+                            {isVerifyingBiometric ? <RefreshCw className="spinner" size={16} /> : <Fingerprint size={16} />}
+                            {isVerifyingBiometric ? 'Comparing...' : 'Verify Biometric'}
+                          </button>
+
+                          {biometricVerifyResult && (
+                            <div style={{
+                              display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', fontWeight: '800',
+                              color: biometricVerifyResult.match ? '#059669' : '#DC2626'
+                            }}>
+                              {biometricVerifyResult.match
+                                ? (<><CheckCircle size={18} /> Biometric Match</>)
+                                : (<><AlertCircle size={18} /> No Match</>)}
+                            </div>
+                          )}
+                        </div>
+
+                        {biometricVerifyError && (
+                          <div style={{ marginTop: '10px', padding: '10px', fontSize: '13px', backgroundColor: '#FEF2F2', border: '1px solid #FCA5A5', color: '#B91C1C', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <AlertCircle size={16} />
+                            <span>{biometricVerifyError}</span>
+                          </div>
+                        )}
+                      </div>
+                    )}
 
                     {showRawJson && (
-                      <pre className="textarea" style={{ marginTop: '15px', height: 'auto', maxHeight: '200px', overflowY: 'auto', backgroundColor: '#1E293B', color: '#F8FAFC' }}>
+                      <pre style={{ marginTop: '12px', padding: '12px', borderRadius: '8px', maxHeight: '200px', overflowY: 'auto', backgroundColor: '#0F172A', color: '#F8FAFC', fontSize: '12px', fontFamily: 'monospace' }}>
                         {JSON.stringify(vpStatus.credentials, null, 2)}
                       </pre>
                     )}
-                  </div>
-                )}
-
-                {vpStatus?.status === 'failed' && (
-                  <div className="error-box" style={{ marginTop: '15px' }}>
-                    <AlertCircle size={20} color="#DC2626" />
-                    <span>Presentation verification failed, signature invalid, or a credential's status is not valid.</span>
                   </div>
                 )}
               </div>
