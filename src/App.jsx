@@ -4,7 +4,7 @@ import { QRCodeSVG } from 'qrcode.react';
 import {
   ShieldCheck, AlertCircle, RefreshCw, QrCode, Award, Code, ArrowRight,
   Upload, CheckCircle, Camera, Trash2, FileText, Lock, User, UserCheck,
-  CreditCard, Landmark, Fingerprint, FileBadge
+  CreditCard, Landmark, Fingerprint, FileBadge, ShieldOff
 } from 'lucide-react';
 import './App.css';
 
@@ -196,6 +196,19 @@ export default function App() {
   const [biometricVerifyResult, setBiometricVerifyResult] = useState(null); // { match: boolean, distance, ... }
   const [biometricVerifyError, setBiometricVerifyError] = useState('');
   const verifyFileInputRef = useRef(null);
+
+  // --- DC-API State ---
+  const [dcApiResult, setDcApiResult] = useState(null);
+  const [dcApiError, setDcApiError] = useState('');
+  const [isDcApiLoading, setIsDcApiLoading] = useState(false);
+
+  // --- Status Update State ---
+  const [statusCredentialType, setStatusCredentialType] = useState('ConsolidatedCredential');
+  const [statusIdx, setStatusIdx] = useState('');
+  const [statusValue, setStatusValue] = useState('suspended');
+  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+  const [statusUpdateResult, setStatusUpdateResult] = useState(null);
+  const [statusUpdateError, setStatusUpdateError] = useState('');
 
   // --- OID4VP Session State ---
   const [selectedUseCase, setSelectedUseCase] = useState('account_opening');
@@ -537,6 +550,62 @@ export default function App() {
     );
   };
 
+  const handleStatusUpdate = async (e) => {
+    e.preventDefault();
+    setIsUpdatingStatus(true);
+    setStatusUpdateError('');
+    setStatusUpdateResult(null);
+    try {
+      const response = await axios.post(`${API_BASE_URL}/status/update`, {
+        credential_type: statusCredentialType,
+        idx: parseInt(statusIdx, 10),
+        status: statusValue,
+      });
+      setStatusUpdateResult(response.data);
+    } catch (err) {
+      setStatusUpdateError(err.response?.data?.detail || 'Failed to update credential status.');
+    } finally {
+      setIsUpdatingStatus(false);
+    }
+  };
+
+  const testDcApi = async () => {
+    setIsDcApiLoading(true);
+    setDcApiError('');
+    setDcApiResult(null);
+
+    const dcqlQuery = {
+      credentials: [
+        {
+          id: 'biographic',
+          format: 'dc+sd-jwt',
+          meta: { vct_values: ['https://vcs-backend-wvbx.onrender.com/credentials/BiographicCredential'] },
+          claims: [{ path: ['first_name'] }, { path: ['age_over_21'] }]
+        }
+      ]
+    };
+
+    const presentationRequest = {
+      response_type: 'vp_token',
+      response_mode: 'dc_api',
+      nonce: crypto.randomUUID(),
+      dcql_query: dcqlQuery,
+    };
+
+    try {
+      const response = await navigator.credentials.get({
+        digital: { requests: [{ protocol: 'openid4vp', data: presentationRequest }] }
+      });
+      console.log('DC API response:', response);
+      setDcApiResult(response);
+    } catch (err) {
+      console.error('DC API error:', err);
+      setDcApiError(err.message || 'DC API request failed.');
+    } finally {
+      setIsDcApiLoading(false);
+    }
+  };
+
   const renderBiometricSection = () => (
     <div style={{ marginTop: '20px' }}>
       <div style={{ backgroundColor: '#FFFFFF', border: '1.5px solid #DDD6FE', borderRadius: '12px', padding: '18px' }}>
@@ -687,6 +756,20 @@ export default function App() {
                 style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
               >
                 <QrCode size={18} /> 2. OID4VP Presentation
+              </button>
+              <button
+                className={`button ${activeTab === 'dcapi' ? '' : 'button-secondary'}`}
+                onClick={() => setActiveTab('dcapi')}
+                style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+              >
+                <Fingerprint size={18} /> 3. DC-API
+              </button>
+              <button
+                className={`button ${activeTab === 'status' ? '' : 'button-secondary'}`}
+                onClick={() => setActiveTab('status')}
+                style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+              >
+                <ShieldOff size={18} /> 4. Status Management
               </button>
             </nav>
       {/* <nav style={{ display: 'flex', gap: '10px', marginBottom: '24px', backgroundColor: '#4F46E5', padding: '6px', borderRadius: '12px' }}>
@@ -1172,6 +1255,212 @@ export default function App() {
                     )}
                   </div>
                 )}
+              </div>
+            </div>
+          )}
+        </section>
+      )}
+
+      {/* TAB 3: DC-API */}
+      {activeTab === 'dcapi' && (
+        <section style={{ backgroundColor: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: '16px', padding: '24px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.03)' }}>
+          <h2 style={{ fontSize: '20px', fontWeight: '800', color: '#0F172A', marginTop: 0, marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <Fingerprint size={22} color="#4F46E5" /> DC-API Credential Presentation
+          </h2>
+          <p style={{ fontSize: '14px', color: '#475569', marginBottom: '24px', marginTop: 0 }}>
+            Uses the browser's <code>navigator.credentials.get()</code> Digital Credentials API to request a Biographic Credential (SD-JWT) from the Sphereon wallet.
+          </p>
+
+          <div style={{ backgroundColor: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '12px', padding: '20px', marginBottom: '24px' }}>
+            <h3 style={{ margin: '0 0 10px 0', fontSize: '14px', fontWeight: '700', color: '#334155' }}>DCQL Query</h3>
+            <pre style={{ margin: 0, padding: '12px', borderRadius: '8px', backgroundColor: '#0F172A', color: '#F8FAFC', fontSize: '12px', fontFamily: 'monospace', overflowX: 'auto' }}>
+{`{
+  "credentials": [{
+    "id": "biographic",
+    "format": "dc+sd-jwt",
+    "meta": { "vct_values": ["https://vcs-backend-wvbx.onrender.com/credentials/BiographicCredential"] },
+    "claims": [{ "path": ["first_name"] }, { "path": ["age_over_21"] }]
+  }]
+}`}
+            </pre>
+          </div>
+
+          <button
+            onClick={testDcApi}
+            disabled={isDcApiLoading}
+            style={{
+              padding: '12px 24px',
+              borderRadius: '8px',
+              backgroundColor: isDcApiLoading ? '#94A3B8' : '#4F46E5',
+              color: '#FFFFFF',
+              border: 'none',
+              fontWeight: '700',
+              fontSize: '15px',
+              cursor: isDcApiLoading ? 'not-allowed' : 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '8px',
+              boxShadow: '0 2px 4px rgba(79, 70, 229, 0.2)'
+            }}
+          >
+            {isDcApiLoading ? (<><RefreshCw className="spinner" size={18} /> Waiting for Wallet...</>) : (<><Fingerprint size={18} /> Request Credential via DC-API</>)}
+          </button>
+
+          {dcApiError && (
+            <div style={{ marginTop: '16px', padding: '12px', backgroundColor: '#FEF2F2', border: '1px solid #FCA5A5', borderRadius: '8px', color: '#991B1B', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px' }}>
+              <AlertCircle size={18} color="#DC2626" />
+              <span>{dcApiError}</span>
+            </div>
+          )}
+
+          {dcApiResult && (
+            <div style={{ marginTop: '20px', backgroundColor: '#ECFDF5', border: '1px solid #A7F3D0', padding: '18px', borderRadius: '12px' }}>
+              <h3 style={{ color: '#065F46', display: 'flex', alignItems: 'center', gap: '8px', margin: '0 0 12px 0', fontSize: '16px', fontWeight: '800' }}>
+                <CheckCircle size={20} color="#059669" /> Credential Received!
+              </h3>
+              <pre style={{ margin: 0, padding: '12px', borderRadius: '8px', maxHeight: '300px', overflowY: 'auto', backgroundColor: '#0F172A', color: '#F8FAFC', fontSize: '12px', fontFamily: 'monospace' }}>
+                {JSON.stringify(dcApiResult, null, 2)}
+              </pre>
+            </div>
+          )}
+        </section>
+      )}
+
+      {/* TAB 4: STATUS MANAGEMENT */}
+      {activeTab === 'status' && (
+        <section style={{ backgroundColor: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: '16px', padding: '24px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.03)' }}>
+          <h2 style={{ fontSize: '20px', fontWeight: '800', color: '#0F172A', marginTop: 0, marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <ShieldOff size={22} color="#DC2626" /> Credential Status Management
+          </h2>
+          <p style={{ fontSize: '14px', color: '#475569', marginBottom: '28px', marginTop: 0 }}>
+            Update the revocation status of an issued credential by its type and status list index.
+          </p>
+
+          <form onSubmit={handleStatusUpdate} style={{ maxWidth: '520px' }}>
+            <div style={{ marginBottom: '18px' }}>
+              <label style={{ fontSize: '13px', fontWeight: '700', color: '#334155', display: 'block', marginBottom: '6px' }}>
+                Credential Type
+              </label>
+              <select
+                style={{ width: '100%', boxSizing: 'border-box', padding: '10px 12px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '14px', fontWeight: '600', color: '#0F172A', backgroundColor: '#FFFFFF' }}
+                value={statusCredentialType}
+                onChange={(e) => { setStatusCredentialType(e.target.value); setStatusUpdateResult(null); setStatusUpdateError(''); }}
+              >
+                {CREDENTIAL_TYPE_LIST.map((t) => (
+                  <option key={t} value={t}>{CREDENTIAL_TYPE_LABELS[t]}</option>
+                ))}
+              </select>
+            </div>
+
+            <div style={{ marginBottom: '18px' }}>
+              <label style={{ fontSize: '13px', fontWeight: '700', color: '#334155', display: 'block', marginBottom: '6px' }}>
+                Status List Index (idx)
+              </label>
+              <input
+                type="number"
+                min="0"
+                step="1"
+                required
+                placeholder="e.g. 0"
+                style={{ width: '100%', boxSizing: 'border-box', padding: '10px 12px', borderRadius: '8px', border: '1px solid #CBD5E1', fontSize: '14px', fontWeight: '500', color: '#0F172A' }}
+                value={statusIdx}
+                onChange={(e) => { setStatusIdx(e.target.value); setStatusUpdateResult(null); setStatusUpdateError(''); }}
+              />
+              <p style={{ margin: '6px 0 0 0', fontSize: '12px', color: '#64748B' }}>
+                The index is printed in the backend logs when the credential was issued.
+              </p>
+            </div>
+
+            <div style={{ marginBottom: '24px' }}>
+              <label style={{ fontSize: '13px', fontWeight: '700', color: '#334155', display: 'block', marginBottom: '8px' }}>
+                New Status
+              </label>
+              <div style={{ display: 'flex', gap: '10px' }}>
+                {['valid', 'suspended', 'revoked'].map((s) => {
+                  const colors = {
+                    valid:     { bg: '#D1FAE5', border: '#059669', text: '#065F46', activeBg: '#059669' },
+                    suspended: { bg: '#FEF3C7', border: '#D97706', text: '#92400E', activeBg: '#D97706' },
+                    revoked:   { bg: '#FEE2E2', border: '#DC2626', text: '#991B1B', activeBg: '#DC2626' },
+                  }[s];
+                  const isActive = statusValue === s;
+                  return (
+                    <button
+                      key={s}
+                      type="button"
+                      onClick={() => { setStatusValue(s); setStatusUpdateResult(null); setStatusUpdateError(''); }}
+                      style={{
+                        flex: 1,
+                        padding: '10px',
+                        borderRadius: '8px',
+                        border: `2px solid ${isActive ? colors.activeBg : '#E2E8F0'}`,
+                        backgroundColor: isActive ? colors.bg : '#F8FAFC',
+                        color: isActive ? colors.text : '#64748B',
+                        fontWeight: '700',
+                        fontSize: '13px',
+                        cursor: 'pointer',
+                        textTransform: 'capitalize',
+                        transition: 'all 0.15s ease',
+                      }}
+                    >
+                      {s.charAt(0).toUpperCase() + s.slice(1)}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div style={{ backgroundColor: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '10px', padding: '14px', marginBottom: '20px', fontFamily: 'monospace', fontSize: '13px', color: '#334155' }}>
+              <span style={{ color: '#94A3B8', fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: '6px' }}>Request Preview</span>
+              {'{'}<br />
+              &nbsp;&nbsp;<span style={{ color: '#7C3AED' }}>"credential_type"</span>: <span style={{ color: '#059669' }}>"{ statusCredentialType }"</span>,<br />
+              &nbsp;&nbsp;<span style={{ color: '#7C3AED' }}>"idx"</span>: <span style={{ color: '#D97706' }}>{ statusIdx !== '' ? statusIdx : 0 }</span>,<br />
+              &nbsp;&nbsp;<span style={{ color: '#7C3AED' }}>"status"</span>: <span style={{ color: '#059669' }}>"{ statusValue }"</span><br />
+              {'}'}
+            </div>
+
+            <button
+              type="submit"
+              disabled={isUpdatingStatus || statusIdx === ''}
+              style={{
+                width: '100%',
+                padding: '12px',
+                borderRadius: '8px',
+                backgroundColor: isUpdatingStatus || statusIdx === '' ? '#94A3B8' : '#DC2626',
+                color: '#FFFFFF',
+                border: 'none',
+                fontWeight: '700',
+                fontSize: '15px',
+                cursor: isUpdatingStatus || statusIdx === '' ? 'not-allowed' : 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
+                boxShadow: '0 2px 4px rgba(220, 38, 38, 0.2)',
+              }}
+            >
+              {isUpdatingStatus ? (<><RefreshCw className="spinner" size={18} /> Updating...</>) : (<><ShieldOff size={18} /> Update Credential Status</>)}
+            </button>
+          </form>
+
+          {statusUpdateError && (
+            <div style={{ marginTop: '16px', maxWidth: '520px', padding: '12px', backgroundColor: '#FEF2F2', border: '1px solid #FCA5A5', borderRadius: '8px', color: '#991B1B', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px' }}>
+              <AlertCircle size={18} color="#DC2626" />
+              <span>{statusUpdateError}</span>
+            </div>
+          )}
+
+          {statusUpdateResult && (
+            <div style={{ marginTop: '16px', maxWidth: '520px', backgroundColor: '#ECFDF5', border: '1px solid #A7F3D0', padding: '18px', borderRadius: '12px' }}>
+              <h3 style={{ color: '#065F46', display: 'flex', alignItems: 'center', gap: '8px', margin: '0 0 12px 0', fontSize: '15px', fontWeight: '800' }}>
+                <CheckCircle size={18} color="#059669" /> Status Updated Successfully
+              </h3>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
+                {[['Credential Type', statusUpdateResult.credential_type], ['Index', statusUpdateResult.idx], ['New Status', statusUpdateResult.status]].map(([label, val]) => (
+                  <div key={label} style={{ backgroundColor: '#FFFFFF', padding: '10px 12px', borderRadius: '8px', border: '1px solid #A7F3D0' }}>
+                    <span style={{ fontSize: '11px', textTransform: 'uppercase', color: '#64748B', fontWeight: '700', letterSpacing: '0.025em', display: 'block' }}>{label}</span>
+                    <span style={{ fontSize: '14px', fontWeight: '700', color: '#0F172A', wordBreak: 'break-word' }}>{String(val)}</span>
+                  </div>
+                ))}
               </div>
             </div>
           )}
