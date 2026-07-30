@@ -587,7 +587,8 @@ export default function App() {
 
     const presentationRequest = {
       response_type: 'vp_token',
-      // response_mode: 'dc_api',
+      response_mode: 'dc_api',
+      client_id: `web-origin:${window.location.origin}`,
       nonce: crypto.randomUUID(),
       client_metadata: {
               vp_formats: {
