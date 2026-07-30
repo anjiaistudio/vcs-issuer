@@ -265,3 +265,112 @@
   color: #991b1b;
   font-size: 0.875rem;
 }
+
+/* ─── Responsive enhancements ───────────────────────────────── */
+
+/* Secondary / inactive tab button */
+.button-secondary {
+  background-color: #F1F5F9;
+  color: #334155;
+  border: 1px solid #E2E8F0;
+  margin-top: 0;
+}
+.button-secondary:hover {
+  background-color: #E2E8F0;
+  color: #0F172A;
+}
+.button-secondary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Tab navigation — allow rows to wrap on small screens */
+.tab-navigation {
+  flex-wrap: wrap;
+}
+.tab-navigation > .button,
+.tab-navigation > .button-secondary {
+  margin-top: 0;
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: 14px;
+  padding: 10px 10px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Issue tab: 2-column on wide screens, 1-column on mobile */
+.issue-grid {
+  display: grid;
+  grid-template-columns: 1.25fr 0.75fr;
+  gap: 24px;
+  align-items: start;
+}
+
+/* ── 900 px: collapse issue grid to single column ─────────── */
+@media (max-width: 900px) {
+  .issue-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ── 768 px: general mobile adjustments ───────────────────── */
+@media (max-width: 768px) {
+  .container {
+    padding: 16px 12px !important;
+  }
+
+  .tab-navigation {
+    gap: 8px;
+  }
+
+  .tab-navigation > .button,
+  .tab-navigation > .button-secondary {
+    flex: 1 1 calc(50% - 8px);
+    font-size: 12px;
+    padding: 9px 6px;
+  }
+
+  .vcs-title {
+    font-size: 22px !important;
+    letter-spacing: -0.01em !important;
+  }
+
+  .vcs-subtitle {
+    font-size: 13px !important;
+  }
+}
+
+/* ── 480 px: stack tab buttons to full width ──────────────── */
+@media (max-width: 480px) {
+  .tab-navigation > .button,
+  .tab-navigation > .button-secondary {
+    flex: 1 1 100%;
+    justify-content: center;
+  }
+}
+
+/* ── Tab section: prevent any child from escaping horizontally */
+.tab-section {
+  overflow-x: hidden;
+}
+
+/* ── DC-API button: full-width on mobile ──────────────────── */
+@media (max-width: 768px) {
+  .tab-section {
+    padding: 16px !important;
+  }
+
+  .dcapi-btn {
+    display: flex !important;
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+/* ── Code / pre blocks: always scroll rather than overflow ── */
+pre {
+  max-width: 100%;
+  overflow-x: auto;
+}

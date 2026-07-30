@@ -590,6 +590,7 @@ export default function App() {
       response_mode: 'dc_api',
       client_id: `web-origin:${window.location.origin}`,
       nonce: crypto.randomUUID(),
+      // response_uri: `${API_BASE_URL}/verify/dc-api-response`,
       client_metadata: {
               vp_formats: {
                 "dc+sd-jwt": { "sd-jwt_alg_values": ["EdDSA"], "kb-jwt_alg_values": ["EdDSA"] }
@@ -741,8 +742,8 @@ export default function App() {
         <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '56px', height: '56px', backgroundColor: '#EEF2FF', borderRadius: '16px', color: '#4F46E5', marginBottom: '12px', boxShadow: '0 2px 6px rgba(79, 70, 229, 0.15)' }}>
           <ShieldCheck size={32} />
         </div>
-        <h1 style={{ fontSize: '30px', fontWeight: '800', color: '#0F172A', margin: 0, letterSpacing: '-0.02em' }}>VCS Issuer & Verifier Studio</h1>
-        <p style={{ fontSize: '15px', color: '#475569', marginTop: '6px' }}>
+        <h1 className="vcs-title" style={{ fontSize: '30px', fontWeight: '800', color: '#0F172A', margin: 0, letterSpacing: '-0.02em' }}>VCS Issuer & Verifier Studio</h1>
+        <p className="vcs-subtitle" style={{ fontSize: '15px', color: '#475569', marginTop: '6px' }}>
           Standards-compliant SD-JWT credentials with <code>OID4VCI</code> & <code>OID4VP</code>
         </p>
       </header>
@@ -827,7 +828,7 @@ export default function App() {
 
       {/* TAB 1: ISSUANCE */}
       {activeTab === 'issue' && (
-        <main style={{ display: 'grid', gridTemplateColumns: '1.25fr 0.75fr', gap: '24px', alignItems: 'start' }}>
+        <main className="issue-grid">
           {/* Column 1: Config Form */}
           <section style={{ backgroundColor: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: '16px', padding: '24px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.03)' }}>
             <h2 style={{ fontSize: '18px', fontWeight: '800', color: '#0F172A', marginTop: 0, marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -1114,7 +1115,7 @@ export default function App() {
           )}
 
           {vpSession && (
-            <div style={{ marginTop: '24px', borderTop: '1px solid #E2E8F0', paddingTop: '24px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '24px' }} ref={qrVpRef}>
+            <div style={{ marginTop: '24px', borderTop: '1px solid #E2E8F0', paddingTop: '24px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 260px), 1fr))', gap: '24px' }} ref={qrVpRef}>
               <div style={{ padding: '20px', backgroundColor: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: '16px', textAlign: 'center', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.03)' }}>
                 <QRCodeSVG value={vpSession.oid4vp_uri} size={210} includeMargin={true} />
                 <p style={{ marginTop: '12px', marginBottom: 0, fontSize: '13px', color: '#64748B', fontWeight: '600' }}>
@@ -1269,29 +1270,38 @@ export default function App() {
 
       {/* TAB 3: DC-API */}
       {activeTab === 'dcapi' && (
-        <section style={{ backgroundColor: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: '16px', padding: '24px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.03)' }}>
-          <h2 style={{ fontSize: '20px', fontWeight: '800', color: '#0F172A', marginTop: 0, marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+        <section className="tab-section" style={{ backgroundColor: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: '16px', padding: '24px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.03)', overflowX: 'hidden' }}>
+          <h2 style={{ fontSize: '20px', fontWeight: '800', color: '#0F172A', marginTop: 0, marginBottom: '8px', display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
             <Fingerprint size={22} color="#4F46E5" /> DC-API Credential Presentation
           </h2>
-          <p style={{ fontSize: '14px', color: '#475569', marginBottom: '24px', marginTop: 0 }}>
+          <p style={{ fontSize: '14px', color: '#475569', marginBottom: '24px', marginTop: 0, lineHeight: '1.6' }}>
             Uses the browser's <code>navigator.credentials.get()</code> Digital Credentials API to request a Biographic Credential (SD-JWT) from the Sphereon wallet.
           </p>
 
-          <div style={{ backgroundColor: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '12px', padding: '20px', marginBottom: '24px' }}>
-            <h3 style={{ margin: '0 0 10px 0', fontSize: '14px', fontWeight: '700', color: '#334155' }}>DCQL Query</h3>
-            <pre style={{ margin: 0, padding: '12px', borderRadius: '8px', backgroundColor: '#0F172A', color: '#F8FAFC', fontSize: '12px', fontFamily: 'monospace', overflowX: 'auto' }}>
+          <div style={{ backgroundColor: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '12px', padding: '16px', marginBottom: '24px', overflow: 'hidden' }}>
+            <h3 style={{ margin: '0 0 10px 0', fontSize: '13px', fontWeight: '700', color: '#334155', textTransform: 'uppercase', letterSpacing: '0.04em' }}>DCQL Query</h3>
+            <pre style={{ margin: 0, padding: '12px', borderRadius: '8px', backgroundColor: '#0F172A', color: '#F8FAFC', fontSize: '11px', fontFamily: 'monospace', overflowX: 'auto', width: '100%', boxSizing: 'border-box', lineHeight: '1.6' }}>
 {`{
   "credentials": [{
     "id": "biographic",
     "format": "dc+sd-jwt",
-    "meta": { "vct_values": ["https://vcs-backend-wvbx.onrender.com/credentials/BiographicCredential"] },
-    "claims": [{ "path": ["first_name"] }, { "path": ["age_over_21"] }]
+    "meta": {
+      "vct_values": [
+        "https://vcs-backend-wvbx.onrender.com
+          /credentials/BiographicCredential"
+      ]
+    },
+    "claims": [
+      { "path": ["first_name"] },
+      { "path": ["age_over_21"] }
+    ]
   }]
 }`}
             </pre>
           </div>
 
           <button
+            className="dcapi-btn"
             onClick={testDcApi}
             disabled={isDcApiLoading}
             style={{
@@ -1313,18 +1323,18 @@ export default function App() {
           </button>
 
           {dcApiError && (
-            <div style={{ marginTop: '16px', padding: '12px', backgroundColor: '#FEF2F2', border: '1px solid #FCA5A5', borderRadius: '8px', color: '#991B1B', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px' }}>
-              <AlertCircle size={18} color="#DC2626" />
-              <span>{dcApiError}</span>
+            <div style={{ marginTop: '16px', padding: '12px', backgroundColor: '#FEF2F2', border: '1px solid #FCA5A5', borderRadius: '8px', color: '#991B1B', display: 'flex', alignItems: 'flex-start', gap: '8px', fontSize: '14px' }}>
+              <AlertCircle size={18} color="#DC2626" style={{ flexShrink: 0, marginTop: '1px' }} />
+              <span style={{ wordBreak: 'break-word' }}>{dcApiError}</span>
             </div>
           )}
 
           {dcApiResult && (
-            <div style={{ marginTop: '20px', backgroundColor: '#ECFDF5', border: '1px solid #A7F3D0', padding: '18px', borderRadius: '12px' }}>
+            <div style={{ marginTop: '20px', backgroundColor: '#ECFDF5', border: '1px solid #A7F3D0', padding: '18px', borderRadius: '12px', overflow: 'hidden' }}>
               <h3 style={{ color: '#065F46', display: 'flex', alignItems: 'center', gap: '8px', margin: '0 0 12px 0', fontSize: '16px', fontWeight: '800' }}>
                 <CheckCircle size={20} color="#059669" /> Credential Received!
               </h3>
-              <pre style={{ margin: 0, padding: '12px', borderRadius: '8px', maxHeight: '300px', overflowY: 'auto', backgroundColor: '#0F172A', color: '#F8FAFC', fontSize: '12px', fontFamily: 'monospace' }}>
+              <pre style={{ margin: 0, padding: '12px', borderRadius: '8px', maxHeight: '300px', overflowY: 'auto', overflowX: 'auto', backgroundColor: '#0F172A', color: '#F8FAFC', fontSize: '11px', fontFamily: 'monospace', width: '100%', boxSizing: 'border-box', lineHeight: '1.6' }}>
                 {JSON.stringify(dcApiResult, null, 2)}
               </pre>
             </div>
@@ -1460,7 +1470,7 @@ export default function App() {
               <h3 style={{ color: '#065F46', display: 'flex', alignItems: 'center', gap: '8px', margin: '0 0 12px 0', fontSize: '15px', fontWeight: '800' }}>
                 <CheckCircle size={18} color="#059669" /> Status Updated Successfully
               </h3>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '10px' }}>
                 {[['Credential Type', statusUpdateResult.credential_type], ['Index', statusUpdateResult.idx], ['New Status', statusUpdateResult.status]].map(([label, val]) => (
                   <div key={label} style={{ backgroundColor: '#FFFFFF', padding: '10px 12px', borderRadius: '8px', border: '1px solid #A7F3D0' }}>
                     <span style={{ fontSize: '11px', textTransform: 'uppercase', color: '#64748B', fontWeight: '700', letterSpacing: '0.025em', display: 'block' }}>{label}</span>

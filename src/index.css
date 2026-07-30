@@ -54,6 +54,12 @@ body {
   margin: 0;
 }
 
+@media (max-width: 768px) {
+  #root {
+    border-inline: none;
+  }
+}
+
 #root {
   width: 1126px;
   max-width: 100%;
