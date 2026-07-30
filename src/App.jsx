@@ -587,14 +587,19 @@ export default function App() {
 
     const presentationRequest = {
       response_type: 'vp_token',
-      response_mode: 'dc_api',
+      // response_mode: 'dc_api',
       nonce: crypto.randomUUID(),
+      client_metadata: {
+              vp_formats: {
+                "dc+sd-jwt": { "sd-jwt_alg_values": ["EdDSA"], "kb-jwt_alg_values": ["EdDSA"] }
+              }
+            },
       dcql_query: dcqlQuery,
     };
 
     try {
       const response = await navigator.credentials.get({
-        digital: { requests: [{ protocol: 'openid4vp', data: presentationRequest }] }
+        digital: { requests: [{ protocol: 'openid4vp-v1-unsigned', data: presentationRequest }] }
       });
       console.log('DC API response:', response);
       setDcApiResult(response);
